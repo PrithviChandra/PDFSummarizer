@@ -14,7 +14,7 @@ OpenAI.api_key = st.secrets["OPEN_API_KEY"]
 #Summarize function
 def summarize_pdf(pdf, chunk_size, chunk_overlap, prompt):
     #Invoking LLM model
-    #llm = ChatOpenAI(model="gpt-3.5-turbo-16k", temperature=0, openai_api_key=OpenAI.api_key)
+    llm = ChatOpenAI(model="gpt-3.5-turbo-16k", temperature=0, openai_api_key=OpenAI.api_key)
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
         temp_pdf.write(pdf.read())
