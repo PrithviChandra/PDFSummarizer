@@ -5,6 +5,8 @@ from langchain_community.document_loaders import PDFPlumberLoader
 from langchain.prompts import PromptTemplate
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chains.summarize import load_summarize_chain
+import tempfile
+import os
 
 #Load API key
 OpenAI.api_key = st.secrets["OPEN_API_KEY"]
@@ -12,7 +14,11 @@ OpenAI.api_key = st.secrets["OPEN_API_KEY"]
 #Summarize function
 def summarize_pdf(pdf, chunk_size, chunk_overlap, prompt):
     #Invoking LLM model
-    llm = ChatOpenAI(model="gpt-3.5-turbo-16k", temperature=0, openai_api_key=OpenAI.api_key)
+    #llm = ChatOpenAI(model="gpt-3.5-turbo-16k", temperature=0, openai_api_key=OpenAI.api_key)
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
+        temp_pdf.write(pdf.read())
+        temp_pdf_path = temp_pdf.name
 
     #Loading PDF file to text extractor
     loader = PDFPlumberLoader(pdf)
@@ -28,6 +34,8 @@ def summarize_pdf(pdf, chunk_size, chunk_overlap, prompt):
     #Summarize each chunk
     chain = load_summarize_chain(llm, chain_type="stuff", prompt=prompt)
     summary = chain.invoke(chunks, return_only_outputs=True)
+
+    os.remove(temp_pdf_path)
 
     return summary['output_text']
 
