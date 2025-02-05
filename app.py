@@ -1,12 +1,10 @@
 import streamlit as st
 from langchain_openai import OpenAI
 from langchain_openai.chat_models import ChatOpenAI
-from langchain_community.document_loaders import PDFPlumberLoader
+from langchain_community.document_loaders import PyPDFLoader
 from langchain.prompts import PromptTemplate
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chains.summarize import load_summarize_chain
-import tempfile
-import os
 
 #Load API key
 OpenAI.api_key = st.secrets["OPEN_API_KEY"]
@@ -16,12 +14,8 @@ def summarize_pdf(pdf, chunk_size, chunk_overlap, prompt):
     #Invoking LLM model
     llm = ChatOpenAI(model="gpt-3.5-turbo-16k", temperature=0, openai_api_key=OpenAI.api_key)
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
-        temp_pdf.write(pdf.read())
-        temp_pdf_path = temp_pdf.name
-
     #Loading PDF file to text extractor
-    loader = PDFPlumberLoader(pdf)
+    loader = PyPDFLoader(pdf)
     raw_text = loader.load()
 
     #Extract text
@@ -35,8 +29,6 @@ def summarize_pdf(pdf, chunk_size, chunk_overlap, prompt):
     chain = load_summarize_chain(llm, chain_type="stuff", prompt=prompt)
     summary = chain.invoke(chunks, return_only_outputs=True)
 
-    os.remove(temp_pdf_path)
-
     return summary['output_text']
 
 def main():
@@ -44,19 +36,17 @@ def main():
     st.title("Summarize PDF")
 
     #Upload file
-    uploaded_file = st.file_uploader("Upload the PDF file", type=["pdf"])
+    pdf_file_path = st.text_input("Enter url for the PDF File:")
+    if pdf_file_path != "":
+      st.write("Loaded PDF file successfully")
 
-    if uploaded_file:
-        st.write("Loaded PDF file successfully")
+    user_prompt = st.text_input("Enter summary instructions:")
+    prompt_complete = user_prompt + """ {text}"""
+    prompt = PromptTemplate(input_variables=["text"], template=prompt_complete)
 
-        #Inputting prompt
-        user_prompt = st.text_input("Enter summary instructions:")
-        prompt_complete = user_prompt + """ {text}"""
-        prompt = PromptTemplate(input_variables=["text"], template=prompt_complete)
-
-        if st.button("Generate Summary"):
-            summary = summarize_pdf(uploaded_file, 1000, 20, prompt)
-            st.write(summary)
+    if st.button("Generate Summary"):
+        summary = summarize_pdf(pdf_file_path, 1000, 20, prompt)
+        st.write(summary)
 
 if __name__ == "__main__":
     main()
